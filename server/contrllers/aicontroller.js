@@ -8,7 +8,6 @@ const openai = new OpenAI({
 
 export const message = async (req, res) => {
     try {
-
         const { prompt, session_id } = req.body;
 
         // Save USER message
