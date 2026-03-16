@@ -1,8 +1,9 @@
 import express from 'express'
-import { registerUser } from '../contrllers/userController.js';
+import { login, registerUser } from '../contrllers/userController.js';
 
 const userRoute = express.Router();
 
 userRoute.post('/register', registerUser);
+userRoute.post('/login', login);
 
 export default userRoute

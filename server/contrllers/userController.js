@@ -1,35 +1,39 @@
-import  jwt  from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import sql from '../configs/db.js'
 import bcrypt from "bcryptjs"
 
 
+// user register function
 export const registerUser = async (req, res) => {
-    try {
+  try {
 
-        const { name, email, password } = req.body;
+    //get the register imformation about user
+    const { name, email, password } = req.body;
 
-        if (!email || !name || !password) {
-           return res.json({ success: false, message: "Missing details" })
-        }
+    // one of the missing show the message
+    if (!email || !name || !password) {
+      return res.json({ success: false, message: "Missing details" })
+    }
 
-        const findemail = await sql`SELECT * FROM users WHERE email = ${email}`
+    // email is already exist show this message
+    const findemail = await sql`SELECT * FROM users WHERE email = ${email}`
+    if (findemail.length > 0) {
+      return res.json({ success: false, message: "user is already exist" })
+    }
 
-        if (findemail.length > 0) {
-          return  res.json({ success: false, message: "user is already exist" })
-        }
+    //hash the password add random keyword
+    const hashPassword = await bcrypt.hash(password, 10)
 
-        const hashPassword = await bcrypt.hash(password, 10)
-
-      const user =  await sql`INSERT INTO users (name, email, password)
+    const user = await sql`INSERT INTO users (name, email, password)
     VALUES (${name}, ${email}, ${hashPassword})
     RETURNING *`
 
-    
-    // create token
+
+    // create a token
     const token = jwt.sign(
       { id: user[0].id },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "1d" }
     );
 
     // cookie
@@ -40,7 +44,7 @@ export const registerUser = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-        res.json({
+    res.json({
       success: true,
       user: {
         id: user[0].id,
@@ -49,8 +53,58 @@ export const registerUser = async (req, res) => {
       }
     });
 
-    } catch (error) {
-        console.log(error.message);
-        res.json({ success: false, message: error.message })
-    }
+  } catch (error) {
+
+    console.log("register function", error.message)
+    res.json({ success: false, message: error.message })
+  }
 }
+
+export const login = async (req, res) => {
+  try {
+
+    const {email, password} = req.body;
+
+    if (!email || !password) {
+      return res.json({ success: false, message: "Missing details" });
+    }
+
+    const user = await sql`SELECT * FROM users WHERE email = ${email}`;
+
+    // check email
+    if (user.length === 0) {
+      return res.json({ success: false, message: "Invalid email or password" });
+    }
+
+    // check password
+    const isMatch = await bcrypt.compare(password, user[0].password);
+
+    if (!isMatch) {
+      return res.json({ success: false, message: "Invalid email or password" });
+    }
+
+    // create token
+    const token = jwt.sign(
+      { id: user[0].id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    // cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.json({
+      success: true,
+      message: "Login successfully"
+    });
+
+  } catch (error) {
+    console.log(error.message);
+    res.json({ success: false, message: error.message });
+  }
+};

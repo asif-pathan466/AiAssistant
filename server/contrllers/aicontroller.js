@@ -8,13 +8,17 @@ const openai = new OpenAI({
 
 export const message = async (req, res) => {
     try {
-        const { prompt, session_id } = req.body;
+        const { prompt, session_id } = req.body;        
+
+        const userId = req.user?.id; 
+
+        if (!session_id || !prompt) {
+            return res.status(400).json({ error: "Missing prompt or session_id" });
+        }
 
         // Save USER message
-        await sql`
-            INSERT INTO messages (session_id, sender_type, content)
-            VALUES (${session_id}, 'user', ${prompt})
-        `;
+        await sql`INSERT INTO messages (user_id, session_id, sender_type, content)
+            VALUES (${userId}, ${session_id}, 'user', ${prompt})`;
 
         const response = await openai.chat.completions.create({
             model: "gemini-3-flash-preview",

@@ -15,11 +15,10 @@ app.get('/', (req,res) => {
     res.send("server is live")
 })
 
-app.use('/api', aiRoute)
-app.use('/api', userRoute)
+app.use('/api/ai', aiRoute)
+app.use('/api/auth', userRoute)
 
-const port = process.env.PORT || 5000;~
-
+const port = process.env.PORT || 5000;
 app.listen(port, () => {
     console.log(`server running on port no ${port}`)
 })
